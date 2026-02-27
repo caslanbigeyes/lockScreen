@@ -1,0 +1,11 @@
+/node_modules
+/dist
+/build
+/out
+/.cache
+*.log
+.DS_Store
+/coverage
+/electron/dist
+/photos
+/userData

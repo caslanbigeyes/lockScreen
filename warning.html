@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>即将锁屏</title>
+    <style>
+      body {
+        margin: 0;
+        background: #b00020;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      .wrap {
+        text-align: center;
+      }
+      .title {
+        font-size: 48px;
+        font-weight: 700;
+        margin-bottom: 24px;
+      }
+      .timer {
+        font-size: 96px;
+        font-weight: 800;
+      }
+      .sub {
+        margin-top: 24px;
+        font-size: 20px;
+        opacity: 0.9;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="title">即将锁屏</div>
+      <div class="timer" id="warningTimer">00:30</div>
+      <div class="sub">请做好保存，马上进入强制锁屏</div>
+    </div>
+    <script src="warning.js"></script>
+  </body>
+</html>

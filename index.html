@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>锁屏专注</title>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        margin: 0;
+        background: #0f1115;
+        color: #e6e8ef;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+      }
+      .card {
+        background: #181b22;
+        border-radius: 16px;
+        padding: 28px;
+        width: 420px;
+        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4);
+      }
+      h1 {
+        margin: 0 0 8px;
+        font-size: 22px;
+      }
+      .status {
+        margin: 16px 0;
+        font-size: 16px;
+        color: #9aa3b2;
+      }
+      .timer {
+        font-size: 48px;
+        font-weight: 700;
+        margin: 12px 0 8px;
+      }
+      .actions {
+        display: flex;
+        gap: 12px;
+      }
+      button {
+        flex: 1;
+        padding: 12px 16px;
+        border-radius: 10px;
+        border: none;
+        font-size: 16px;
+        cursor: pointer;
+      }
+      .start {
+        background: #3d7eff;
+        color: #fff;
+      }
+      .stop {
+        background: #2b2f3a;
+        color: #e6e8ef;
+      }
+      .hint {
+        margin-top: 16px;
+        font-size: 13px;
+        color: #7f8897;
+        line-height: 1.5;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>1分钟专注锁屏</h1>
+      <div class="status" id="statusText">等待开始</div>
+      <div class="timer" id="timerText">01:00</div>
+      <div class="actions">
+        <button class="start" id="startBtn">开始专注</button>
+        <button class="stop" id="stopBtn">停止</button>
+      </div>
+      <div class="hint" id="hintText">
+        到点后锁屏（约5分钟），解锁后不再继续锁屏
+      </div>
+      <div style="margin-top:16px;display:flex;flex-direction:column;gap:8px">
+        <div>
+          <label>专注时长</label>
+          <select id="focusMinutes">
+            <option value="1">1分钟</option>
+            <option value="25">25分钟</option>
+            <option value="40">40分钟</option>
+          </select>
+        </div>
+        <label style="display:flex;align-items:center;gap:8px">
+          <input type="checkbox" id="captureEnabled" checked />
+          随机拍照
+        </label>
+        <label style="display:flex;align-items:center;gap:8px">
+          <input type="checkbox" id="mathGateEnabled" checked />
+          解锁需答题
+        </label>
+        <div>
+          <label>API地址</label>
+          <input id="apiBase" placeholder="https://your-api.example.com" style="width:100%;padding:8px;border-radius:8px;border:none;background:#2b2f3a;color:#e6e8ef" />
+        </div>
+        <div>
+          <label>API令牌</label>
+          <input id="apiToken" placeholder="Bearer Token" style="width:100%;padding:8px;border-radius:8px;border:none;background:#2b2f3a;color:#e6e8ef" />
+        </div>
+        <div style="display:flex;gap:8px">
+          <input id="licenseInput" placeholder="输入许可证Key" style="flex:1;padding:8px;border-radius:8px;border:none;background:#2b2f3a;color:#e6e8ef" />
+          <button id="setLicenseBtn" class="start" style="flex:0 0 auto">设置</button>
+        </div>
+        <div style="margin-top:8px">
+          <div>今日统计</div>
+          <div style="display:flex;gap:12px;margin-top:6px">
+            <span>解锁次数：<span id="statUnlock">0</span></span>
+            <span>被强制锁次数：<span id="statForced">0</span></span>
+            <span>拖延评分：<span id="statDelay">0</span></span>
+            <button id="refreshStats" class="stop" style="margin-left:auto">刷新</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script src="renderer.js"></script>
+  </body>
+</html>
