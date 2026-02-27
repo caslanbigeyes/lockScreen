@@ -3,119 +3,330 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>锁屏专注</title>
+    <title>FocusGuard</title>
     <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
       body {
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        margin: 0;
         background: #0f1115;
         color: #e6e8ef;
-        display: flex;
-        align-items: center;
-        justify-content: center;
         height: 100vh;
-      }
-      .card {
-        background: #181b22;
-        border-radius: 16px;
-        padding: 28px;
-        width: 420px;
-        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4);
-      }
-      h1 {
-        margin: 0 0 8px;
-        font-size: 22px;
-      }
-      .status {
-        margin: 16px 0;
-        font-size: 16px;
-        color: #9aa3b2;
-      }
-      .timer {
-        font-size: 48px;
-        font-weight: 700;
-        margin: 12px 0 8px;
-      }
-      .actions {
         display: flex;
-        gap: 12px;
+        flex-direction: column;
+        overflow: hidden;
       }
-      button {
+
+      /* Tab 导航 */
+      .tab-nav {
+        display: flex;
+        background: #181b22;
+        border-bottom: 1px solid #2b2f3a;
+        flex-shrink: 0;
+      }
+      .tab-nav button {
         flex: 1;
-        padding: 12px 16px;
-        border-radius: 10px;
+        padding: 14px 0;
+        background: transparent;
         border: none;
-        font-size: 16px;
+        color: #7f8897;
+        font-size: 14px;
         cursor: pointer;
+        border-bottom: 2px solid transparent;
+        transition: all 0.2s;
       }
-      .start {
-        background: #3d7eff;
-        color: #fff;
+      .tab-nav button.active {
+        color: #3d7eff;
+        border-bottom-color: #3d7eff;
       }
-      .stop {
-        background: #2b2f3a;
+      .tab-nav button:hover {
         color: #e6e8ef;
       }
-      .hint {
-        margin-top: 16px;
+
+      /* Tab 内容 */
+      .tab-content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px;
+      }
+      .tab-panel {
+        display: none;
+      }
+      .tab-panel.active {
+        display: block;
+      }
+
+      /* 专注 Tab */
+      .focus-panel {
+        text-align: center;
+        padding-top: 20px;
+      }
+      .focus-panel .title {
+        font-size: 20px;
+        font-weight: 600;
+        margin-bottom: 8px;
+      }
+      .focus-panel .status {
+        font-size: 15px;
+        color: #9aa3b2;
+        margin-bottom: 16px;
+      }
+      .focus-panel .timer {
+        font-size: 56px;
+        font-weight: 700;
+        margin: 12px 0 20px;
+        font-variant-numeric: tabular-nums;
+      }
+      .focus-panel .actions {
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+      }
+      .focus-panel .hint {
+        margin-top: 20px;
         font-size: 13px;
         color: #7f8897;
-        line-height: 1.5;
+        line-height: 1.6;
+      }
+
+      /* 统计 Tab */
+      .stats-panel .overview {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        margin-bottom: 16px;
+      }
+      .stats-panel .stat-card {
+        background: #181b22;
+        border-radius: 10px;
+        padding: 14px;
+        text-align: center;
+      }
+      .stat-card .value {
+        font-size: 24px;
+        font-weight: 700;
+      }
+      .stat-card .label {
+        font-size: 12px;
+        color: #7f8897;
+        margin-top: 4px;
+      }
+      .stats-panel .score-section {
+        background: #181b22;
+        border-radius: 10px;
+        padding: 20px;
+        text-align: center;
+        margin-bottom: 16px;
+      }
+      .score-section .big-score {
+        font-size: 48px;
+        font-weight: 800;
+      }
+      .score-section .score-label {
+        font-size: 13px;
+        color: #7f8897;
+        margin-top: 4px;
+      }
+      .behavior-badge {
+        display: inline-block;
+        padding: 4px 14px;
+        border-radius: 16px;
+        font-size: 13px;
+        font-weight: 600;
+        margin-top: 8px;
+      }
+      .b-normal { background: #1b3a2d; color: #4ade80; }
+      .b-impulse { background: #3a1b1b; color: #f87171; }
+      .b-resist { background: #3a2e1b; color: #fbbf24; }
+      .b-fake { background: #1b2a3a; color: #60a5fa; }
+      .b-nodata { background: #2b2f3a; color: #9aa3b2; }
+
+      /* 设置 Tab */
+      .settings-panel {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+      .setting-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: #181b22;
+        border-radius: 10px;
+        padding: 12px 16px;
+      }
+      .setting-row .setting-label {
+        font-size: 14px;
+      }
+      .setting-row select,
+      .setting-row input[type="text"],
+      .setting-row input[type="password"] {
+        padding: 8px 12px;
+        border-radius: 8px;
+        border: none;
+        background: #2b2f3a;
+        color: #e6e8ef;
+        font-size: 14px;
+        width: 200px;
+      }
+      .setting-row input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+      }
+      .setting-group-title {
+        font-size: 13px;
+        color: #7f8897;
+        margin-top: 6px;
+      }
+
+      /* 通用按钮 */
+      .btn {
+        padding: 10px 20px;
+        border-radius: 10px;
+        border: none;
+        font-size: 15px;
+        cursor: pointer;
+        transition: opacity 0.2s;
+      }
+      .btn:hover { opacity: 0.85; }
+      .btn-primary { background: #3d7eff; color: #fff; }
+      .btn-secondary { background: #2b2f3a; color: #e6e8ef; }
+      .btn-action {
+        width: 100%;
+        padding: 12px;
+        border-radius: 10px;
+        border: none;
+        font-size: 14px;
+        cursor: pointer;
+        background: #2b2f3a;
+        color: #e6e8ef;
+        transition: background 0.2s;
+      }
+      .btn-action:hover { background: #353a47; }
+      .btn-action.primary { background: #3d7eff; color: #fff; }
+
+      .license-row {
+        display: flex;
+        gap: 8px;
+      }
+      .license-row input {
+        flex: 1;
+        padding: 8px 12px;
+        border-radius: 8px;
+        border: none;
+        background: #2b2f3a;
+        color: #e6e8ef;
+        font-size: 14px;
       }
     </style>
   </head>
   <body>
-    <div class="card">
-      <h1>1分钟专注锁屏</h1>
-      <div class="status" id="statusText">等待开始</div>
-      <div class="timer" id="timerText">01:00</div>
-      <div class="actions">
-        <button class="start" id="startBtn">开始专注</button>
-        <button class="stop" id="stopBtn">停止</button>
-      </div>
-      <div class="hint" id="hintText">
-        到点后锁屏（约5分钟），解锁后不再继续锁屏
-      </div>
-      <div style="margin-top:16px;display:flex;flex-direction:column;gap:8px">
-        <div>
-          <label>专注时长</label>
-          <select id="focusMinutes">
-            <option value="1">1分钟</option>
-            <option value="25">25分钟</option>
-            <option value="40">40分钟</option>
-          </select>
-        </div>
-        <label style="display:flex;align-items:center;gap:8px">
-          <input type="checkbox" id="captureEnabled" checked />
-          随机拍照
-        </label>
-        <label style="display:flex;align-items:center;gap:8px">
-          <input type="checkbox" id="mathGateEnabled" checked />
-          解锁需答题
-        </label>
-        <div>
-          <label>API地址</label>
-          <input id="apiBase" placeholder="https://your-api.example.com" style="width:100%;padding:8px;border-radius:8px;border:none;background:#2b2f3a;color:#e6e8ef" />
-        </div>
-        <div>
-          <label>API令牌</label>
-          <input id="apiToken" placeholder="Bearer Token" style="width:100%;padding:8px;border-radius:8px;border:none;background:#2b2f3a;color:#e6e8ef" />
-        </div>
-        <div style="display:flex;gap:8px">
-          <input id="licenseInput" placeholder="输入许可证Key" style="flex:1;padding:8px;border-radius:8px;border:none;background:#2b2f3a;color:#e6e8ef" />
-          <button id="setLicenseBtn" class="start" style="flex:0 0 auto">设置</button>
-        </div>
-        <div style="margin-top:8px">
-          <div>今日统计</div>
-          <div style="display:flex;gap:12px;margin-top:6px">
-            <span>解锁次数：<span id="statUnlock">0</span></span>
-            <span>被强制锁次数：<span id="statForced">0</span></span>
-            <span>拖延评分：<span id="statDelay">0</span></span>
-            <button id="refreshStats" class="stop" style="margin-left:auto">刷新</button>
+    <!-- Tab 导航 -->
+    <div class="tab-nav">
+      <button class="active" data-tab="focus">专注</button>
+      <button data-tab="stats">统计</button>
+      <button data-tab="settings">设置</button>
+    </div>
+
+    <!-- 专注 Tab -->
+    <div class="tab-content">
+      <div class="tab-panel active" id="tab-focus">
+        <div class="focus-panel">
+          <div class="title">FocusGuard</div>
+          <div class="status" id="statusText">等待开始</div>
+          <div class="timer" id="timerText">01:00</div>
+          <div class="actions">
+            <button class="btn btn-primary" id="startBtn">开始专注</button>
+            <button class="btn btn-secondary" id="stopBtn">停止</button>
+          </div>
+          <div class="hint" id="hintText">
+            到点后锁屏（约5分钟），解锁后需答题继续
           </div>
         </div>
       </div>
+
+      <!-- 统计 Tab -->
+      <div class="tab-panel" id="tab-stats">
+        <div class="stats-panel">
+          <div class="score-section">
+            <div class="big-score" id="scoreValue">0</div>
+            <div class="score-label">7 天综合拖延指数</div>
+            <div class="behavior-badge b-nodata" id="behaviorTag">数据不足</div>
+          </div>
+          <div class="overview">
+            <div class="stat-card">
+              <div class="value" id="statUnlock">0</div>
+              <div class="label">解锁次数</div>
+            </div>
+            <div class="stat-card">
+              <div class="value" id="statForced">0</div>
+              <div class="label">强制锁屏</div>
+            </div>
+            <div class="stat-card">
+              <div class="value" id="statDelay">0</div>
+              <div class="label">拖延评分</div>
+            </div>
+            <div class="stat-card">
+              <div class="value" id="statMathErr">0</div>
+              <div class="label">答题错误</div>
+            </div>
+            <div class="stat-card">
+              <div class="value" id="statSessions">0</div>
+              <div class="label">专注次数</div>
+            </div>
+            <div class="stat-card">
+              <div class="value" id="statFocusMin">0</div>
+              <div class="label">专注(分)</div>
+            </div>
+          </div>
+          <button class="btn-action" id="openDetailStats">查看详细统计图表</button>
+          <button class="btn-action" id="refreshStats">刷新统计</button>
+        </div>
+      </div>
+
+      <!-- 设置 Tab -->
+      <div class="tab-panel" id="tab-settings">
+        <div class="settings-panel">
+          <div class="setting-group-title">基础设置</div>
+          <div class="setting-row">
+            <span class="setting-label">专注时长</span>
+            <select id="focusMinutes">
+              <option value="1">1 分钟</option>
+              <option value="25">25 分钟</option>
+              <option value="40">40 分钟</option>
+              <option value="60">60 分钟</option>
+            </select>
+          </div>
+          <div class="setting-row">
+            <span class="setting-label">随机拍照</span>
+            <input type="checkbox" id="captureEnabled" checked />
+          </div>
+          <div class="setting-row">
+            <span class="setting-label">解锁需答题</span>
+            <input type="checkbox" id="mathGateEnabled" checked />
+          </div>
+
+          <div class="setting-group-title">API 同步（可选）</div>
+          <div class="setting-row">
+            <span class="setting-label">API 地址</span>
+            <input type="text" id="apiBase" placeholder="https://your-api.example.com" />
+          </div>
+          <div class="setting-row">
+            <span class="setting-label">API 令牌</span>
+            <input type="password" id="apiToken" placeholder="Bearer Token" />
+          </div>
+
+          <div class="setting-group-title">许可证</div>
+          <div class="license-row">
+            <input id="licenseInput" placeholder="输入许可证 Key" />
+            <button class="btn btn-primary" id="setLicenseBtn">设置</button>
+          </div>
+
+          <div class="setting-group-title">数据导出</div>
+          <button class="btn-action primary" id="exportReportBtn">导出 PDF 周报</button>
+        </div>
+      </div>
     </div>
+
     <script src="renderer.js"></script>
   </body>
 </html>

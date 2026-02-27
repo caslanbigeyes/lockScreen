@@ -27,6 +27,28 @@
         font-size: 22px;
         margin-bottom: 12px;
       }
+      .countdown {
+        font-size: 18px;
+        color: #ff6b6b;
+        margin-bottom: 8px;
+        font-weight: 600;
+      }
+      .countdown.warn {
+        animation: blink 0.5s infinite alternate;
+      }
+      @keyframes blink {
+        from { opacity: 1; }
+        to { opacity: 0.4; }
+      }
+      .level-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 13px;
+        margin-bottom: 12px;
+        background: #2b2f3a;
+        color: #9aa3b2;
+      }
       .problem {
         font-size: 32px;
         font-weight: 700;
@@ -41,6 +63,7 @@
         outline: none;
         background: #2b2f3a;
         color: #e6e8ef;
+        box-sizing: border-box;
       }
       button {
         margin-top: 16px;
@@ -58,16 +81,25 @@
         font-size: 13px;
         color: #7f8897;
       }
+      .result {
+        margin-top: 12px;
+        font-size: 14px;
+        color: #ff6b6b;
+        display: none;
+      }
     </style>
   </head>
   <body>
     <div class="card">
       <div class="title">请输入结果以继续使用电脑</div>
+      <div class="countdown" id="countdown">剩余时间：20 秒</div>
+      <div class="level-badge" id="levelBadge">Level 1</div>
       <div class="problem" id="problem">0 + 0 = ?</div>
       <input id="answer" type="number" placeholder="输入答案" />
       <button id="submit">确认</button>
-      <div class="tip">正确后关闭此窗口并继续专注</div>
+      <div class="result" id="result"></div>
+      <div class="tip">正确后关闭此窗口并继续专注<br>答错或超时将重新锁屏</div>
     </div>
     <script src="math.js"></script>
   </body>
-  </html>
+</html>

@@ -2,11 +2,14 @@ const { app, BrowserWindow, ipcMain, powerMonitor } = require("electron");
 const path = require("path");
 const { exec } = require("child_process");
 const fs = require("fs");
+const delayIndex = require("./delayIndex");
+const photoCrypto = require("./crypto");
 
 app.commandLine.appendSwitch("no-sandbox");
 
 let mainWindow;
 let warningWindow;
+let mathWindow;
 let focusTimer = null;
 let warningTimer;
 let enforceInterval;
@@ -15,6 +18,8 @@ let isLocking = false;
 let wasLockedByApp = false;
 let captureTimer = null;
 let expectedAnswer = null;
+let mathCountdownTimer = null;
+let focusSessionStart = null;
 
 const parseIntEnv = (name, def) => {
   const v = parseInt(process.env[name], 10);
@@ -29,6 +34,7 @@ const statsFile = path.join(userDataDir, "stats.json");
 const licenseFile = path.join(userDataDir, "license.json");
 const settingsFile = path.join(userDataDir, "settings.json");
 let licenseEnabled = true;
+let licenseKey = "";
 let stats = {};
 let settings = { focusMinutes: 1, captureEnabled: true, mathGateEnabled: true, apiBase: "", apiToken: "" };
 
@@ -43,8 +49,10 @@ const loadLicense = () => {
     const raw = fs.readFileSync(licenseFile, "utf-8");
     const data = JSON.parse(raw);
     licenseEnabled = !!data && !!data.key;
+    licenseKey = (data && data.key) || "";
   } catch {
     licenseEnabled = true;
+    licenseKey = "";
   }
 };
 
@@ -52,6 +60,7 @@ const saveLicense = (key) => {
   try {
     fs.writeFileSync(licenseFile, JSON.stringify({ key }), "utf-8");
     licenseEnabled = !!key;
+    licenseKey = key || "";
     if (mainWindow) {
       mainWindow.webContents.send("license-status", { enabled: licenseEnabled });
     }
@@ -83,9 +92,10 @@ const todayKey = () => {
 
 const bumpDaily = (field) => {
   const key = todayKey();
-  if (!stats[key]) stats[key] = { unlockCount: 0, forcedLockCount: 0, delayScore: 0 };
+  if (!stats[key]) stats[key] = {};
+  stats[key] = delayIndex.ensureDayFields(stats[key]);
   stats[key][field] = (stats[key][field] || 0) + 1;
-  stats[key].delayScore = (stats[key].unlockCount || 0) * 2 + (stats[key].forcedLockCount || 0) * 3;
+  delayIndex.updateDayMetrics(stats, key);
   saveStats();
 };
 
@@ -157,7 +167,7 @@ const validateLicenseOnline = async (key) => {
 const createMainWindow = () => {
   mainWindow = new BrowserWindow({
     width: 520,
-    height: 420,
+    height: 560,
     resizable: false,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
@@ -191,6 +201,40 @@ const clearTimers = () => {
     clearTimeout(captureTimer);
     captureTimer = null;
   }
+  if (mathCountdownTimer) {
+    clearTimeout(mathCountdownTimer);
+    mathCountdownTimer = null;
+  }
+};
+
+const createWarningWindow = () => {
+  destroyWarningWindow();
+  warningWindow = new BrowserWindow({
+    fullscreen: true,
+    alwaysOnTop: true,
+    frame: false,
+    skipTaskbar: true,
+    resizable: false,
+    movable: false,
+    closable: false,
+    focusable: true,
+    webPreferences: {
+      preload: path.join(__dirname, "preload.js"),
+      contextIsolation: true,
+      nodeIntegration: false
+    }
+  });
+  warningWindow.setMenu(null);
+  warningWindow.on("close", (e) => {
+    e.preventDefault();
+  });
+  warningWindow.loadFile(path.join(__dirname, "warning.html"));
+  warningWindow.webContents.once("did-finish-load", () => {
+    warningWindow.webContents.send("warning-start", { remainingMs: 30000 });
+  });
+  if (mainWindow) {
+    mainWindow.webContents.send("warning-status", { remainingMs: 30000 });
+  }
 };
 
 const performLock = () => {
@@ -198,6 +242,52 @@ const performLock = () => {
     exec("rundll32.exe user32.dll,LockWorkStation");
   } else if (process.platform === "darwin") {
     exec("pmset displaysleepnow");
+  }
+};
+
+/**
+ * 根据 7 天综合拖延指数计算自适应策略
+ */
+const getAdaptiveStrategy = () => {
+  const score = delayIndex.computeWeightedScore(stats);
+  const behavior = delayIndex.identifyBehavior(stats);
+
+  if (score >= 50) {
+    return {
+      mathLevel: 4,
+      extraLockMs: 3 * 60 * 1000,
+      doubleLock: true,
+      forceCapture: true,
+      score,
+      behavior
+    };
+  } else if (score >= 25) {
+    return {
+      mathLevel: 3,
+      extraLockMs: 3 * 60 * 1000,
+      doubleLock: false,
+      forceCapture: false,
+      score,
+      behavior
+    };
+  } else if (score >= 10) {
+    return {
+      mathLevel: 2,
+      extraLockMs: 0,
+      doubleLock: false,
+      forceCapture: false,
+      score,
+      behavior
+    };
+  } else {
+    return {
+      mathLevel: 1,
+      extraLockMs: 0,
+      doubleLock: false,
+      forceCapture: false,
+      score,
+      behavior
+    };
   }
 };
 
@@ -220,16 +310,58 @@ const enforceLock = () => {
 
 const lockScreen = () => {
   destroyWarningWindow();
+
+  // 记录本次专注时长
+  if (focusSessionStart) {
+    const duration = Date.now() - focusSessionStart;
+    delayIndex.recordFocusSession(stats, todayKey(), duration);
+    focusSessionStart = null;
+    saveStats();
+  }
+
+  const strategy = getAdaptiveStrategy();
+  currentMathLevel = strategy.mathLevel;
+  const effectiveLockMs = lockDurationMs + strategy.extraLockMs;
+
   lockStartTime = Date.now();
   isLocking = true;
   wasLockedByApp = true;
   bumpDaily("forcedLockCount");
+
+  // 强制拍照（高拖延指数时）
+  if (strategy.forceCapture && mainWindow) {
+    mainWindow.webContents.send("capture-photo");
+  }
+
   performLock();
-  enforceLock();
+
+  // 使用自适应锁屏时长
+  if (enforceInterval) {
+    clearTimeout(enforceInterval);
+  }
+  enforceInterval = setTimeout(() => {
+    lockStartTime = null;
+    isLocking = false;
+    if (mainWindow) {
+      mainWindow.webContents.send("lock-status", {
+        isLocking: false,
+        remainingMs: 0
+      });
+    }
+    enforceInterval = null;
+
+    // 双重锁屏：解除后立即再次锁屏一次
+    if (strategy.doubleLock) {
+      setTimeout(() => {
+        performLock();
+      }, 2000);
+    }
+  }, effectiveLockMs);
+
   if (mainWindow) {
     mainWindow.webContents.send("lock-status", {
       isLocking: true,
-      remainingMs: lockDurationMs
+      remainingMs: effectiveLockMs
     });
   }
 };
@@ -239,10 +371,29 @@ const startFocus = () => {
   destroyWarningWindow();
   lockStartTime = null;
   isLocking = false;
+  focusSessionStart = Date.now();
 
-  warningTimer = setTimeout(() => {
-    lockScreen();
-  }, focusDurationMs);
+  // 应用自适应策略
+  const strategy = getAdaptiveStrategy();
+  currentMathLevel = strategy.mathLevel;
+
+  const warningLeadMs = 30000;
+
+  if (focusDurationMs > warningLeadMs) {
+    // 在锁屏前 30 秒弹出警告窗口
+    warningTimer = setTimeout(() => {
+      createWarningWindow();
+      // 警告 30 秒后触发锁屏
+      focusTimer = setTimeout(() => {
+        lockScreen();
+      }, warningLeadMs);
+    }, focusDurationMs - warningLeadMs);
+  } else {
+    // 专注时长 <= 30s，直接倒计时后锁屏
+    warningTimer = setTimeout(() => {
+      lockScreen();
+    }, focusDurationMs);
+  }
 
   if (licenseEnabled && mainWindow) {
     const min = 5000;
@@ -284,8 +435,10 @@ ipcMain.on("save-photo", (_, base64) => {
     const idx = b64.indexOf("base64,");
     const raw = idx >= 0 ? b64.slice(idx + 7) : b64;
     const buf = Buffer.from(raw, "base64");
-    const name = `photo_${Date.now()}.jpg`;
-    fs.writeFileSync(path.join(photosDir, name), buf);
+    // AES 加密后保存（扩展名 .enc 标识已加密）
+    const encrypted = photoCrypto.encrypt(buf, licenseKey);
+    const name = `photo_${Date.now()}.enc`;
+    fs.writeFileSync(path.join(photosDir, name), encrypted);
   } catch {}
   syncPhotoBase64(base64);
 });
@@ -325,6 +478,10 @@ app.whenReady().then(() => {
   powerMonitor.on("unlock-screen", () => {
     if (wasLockedByApp) {
       wasLockedByApp = false;
+      // 快速解锁检测：锁屏后 < 30s 解锁
+      if (lockStartTime && (Date.now() - lockStartTime) < 30000) {
+        bumpDaily("quickUnlockCount");
+      }
       if (enforceInterval) {
         clearTimeout(enforceInterval);
         enforceInterval = null;
@@ -351,20 +508,86 @@ app.whenReady().then(() => {
   });
 });
 
-const randomProblem = () => {
-  const a = Math.floor(Math.random() * 40) + 10;
-  const b = Math.floor(Math.random() * 40) + 10;
-  const ops = ["+", "-", "*"];
-  const op = ops[Math.floor(Math.random() * ops.length)];
-  let ans = 0;
-  if (op === "+") ans = a + b;
-  if (op === "-") ans = a - b;
-  if (op === "*") ans = a * b;
+let currentMathLevel = 1;
+
+const randomProblem = (level) => {
+  level = level || currentMathLevel;
+  let a, b, op, ans, display;
+
+  switch (level) {
+    case 1: // 两位数加减
+      a = Math.floor(Math.random() * 90) + 10;
+      b = Math.floor(Math.random() * 90) + 10;
+      op = Math.random() < 0.5 ? "+" : "-";
+      ans = op === "+" ? a + b : a - b;
+      display = `${a} ${op} ${b}`;
+      break;
+    case 2: // 两位数乘法
+      a = Math.floor(Math.random() * 90) + 10;
+      b = Math.floor(Math.random() * 9) + 2;
+      op = "*";
+      ans = a * b;
+      display = `${a} × ${b}`;
+      break;
+    case 3: // 三位数加减 + 两位数乘法混合
+      if (Math.random() < 0.5) {
+        a = Math.floor(Math.random() * 900) + 100;
+        b = Math.floor(Math.random() * 900) + 100;
+        op = Math.random() < 0.5 ? "+" : "-";
+        ans = op === "+" ? a + b : a - b;
+        display = `${a} ${op} ${b}`;
+      } else {
+        a = Math.floor(Math.random() * 90) + 10;
+        b = Math.floor(Math.random() * 90) + 10;
+        op = "*";
+        ans = a * b;
+        display = `${a} × ${b}`;
+      }
+      break;
+    case 4: // 三位数混合运算、简单平方
+    default:
+      if (Math.random() < 0.3) {
+        // 简单平方
+        a = Math.floor(Math.random() * 20) + 5;
+        ans = a * a;
+        display = `${a}²`;
+      } else if (Math.random() < 0.5) {
+        // 三位数混合
+        a = Math.floor(Math.random() * 900) + 100;
+        b = Math.floor(Math.random() * 90) + 10;
+        const c = Math.floor(Math.random() * 90) + 10;
+        ans = a + b * c;
+        display = `${a} + ${b} × ${c}`;
+      } else {
+        a = Math.floor(Math.random() * 900) + 100;
+        b = Math.floor(Math.random() * 900) + 100;
+        op = Math.random() < 0.5 ? "+" : "-";
+        const c = Math.floor(Math.random() * 9) + 2;
+        const sub = op === "+" ? a + b : a - b;
+        ans = sub * c;
+        display = `(${a} ${op} ${b}) × ${c}`;
+      }
+      break;
+  }
+
   expectedAnswer = ans;
-  return { a, b, op };
+  return { display, level };
+};
+
+const closeMathWindow = () => {
+  if (mathWindow) {
+    mathWindow.removeAllListeners("close");
+    mathWindow.close();
+    mathWindow = null;
+  }
+  if (mathCountdownTimer) {
+    clearTimeout(mathCountdownTimer);
+    mathCountdownTimer = null;
+  }
 };
 
 const createMathWindow = () => {
+  closeMathWindow();
   const w = new BrowserWindow({
     fullscreen: true,
     alwaysOnTop: true,
@@ -381,14 +604,22 @@ const createMathWindow = () => {
       nodeIntegration: false
     }
   });
+  mathWindow = w;
   w.setMenu(null);
   w.on("close", (e) => {
     e.preventDefault();
   });
   w.loadFile(path.join(__dirname, "math.html"));
-  const p = randomProblem();
+  const p = randomProblem(currentMathLevel);
   w.webContents.once("did-finish-load", () => {
     w.webContents.send("math-problem", p);
+    // 20 秒倒计时
+    mathCountdownTimer = setTimeout(() => {
+      // 超时视为答错
+      bumpDaily("mathErrorCount");
+      closeMathWindow();
+      lockScreen();
+    }, 20000);
   });
   return w;
 };
@@ -396,14 +627,15 @@ const createMathWindow = () => {
 ipcMain.on("math-answer", (_, payload) => {
   const pass = Number(payload && payload.answer) === expectedAnswer;
   if (pass) {
-    const all = BrowserWindow.getAllWindows();
-    const gate = all.find((x) => x !== mainWindow);
-    if (gate) {
-      gate.removeAllListeners("close");
-      gate.close();
-    }
+    closeMathWindow();
     expectedAnswer = null;
     startFocus();
+  } else {
+    // 答错：记录统计，关闭数学窗口，重新锁屏
+    bumpDaily("mathErrorCount");
+    closeMathWindow();
+    expectedAnswer = null;
+    lockScreen();
   }
 });
 
@@ -414,6 +646,56 @@ ipcMain.on("set-settings", (_, data) => {
 ipcMain.on("get-settings", () => {
   if (mainWindow) {
     mainWindow.webContents.send("settings-status", settings);
+  }
+});
+
+// 统计窗口
+let statsWindow = null;
+
+const createStatsWindow = () => {
+  if (statsWindow && !statsWindow.isDestroyed()) {
+    statsWindow.focus();
+    return;
+  }
+  statsWindow = new BrowserWindow({
+    width: 680,
+    height: 720,
+    resizable: true,
+    webPreferences: {
+      preload: path.join(__dirname, "preload.js"),
+      contextIsolation: true,
+      nodeIntegration: false
+    }
+  });
+  statsWindow.loadFile(path.join(__dirname, "stats.html"));
+  statsWindow.on("closed", () => {
+    statsWindow = null;
+  });
+};
+
+ipcMain.on("open-stats", () => {
+  createStatsWindow();
+});
+
+ipcMain.on("request-full-stats", (event) => {
+  const key = todayKey();
+  const weightedScore = delayIndex.computeWeightedScore(stats);
+  const behavior = delayIndex.identifyBehavior(stats);
+  event.sender.send("full-stats", {
+    stats,
+    weightedScore,
+    behavior,
+    todayKey: key
+  });
+});
+
+// PDF 周报导出
+ipcMain.on("export-report", async () => {
+  try {
+    const report = require("./report");
+    await report.exportPDF(stats, mainWindow);
+  } catch (err) {
+    console.error("PDF export error:", err);
   }
 });
 

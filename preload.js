@@ -5,7 +5,9 @@ contextBridge.exposeInMainWorld("lockscreen", {
   stopFocus: () => ipcRenderer.send("stop-focus"),
   onFocusStarted: (callback) => ipcRenderer.on("focus-started", (_, data) => callback(data)),
   onFocusStopped: (callback) => ipcRenderer.on("focus-stopped", () => callback()),
-  onLockStatus: (callback) => ipcRenderer.on("lock-status", (_, data) => callback(data))
+  onLockStatus: (callback) => ipcRenderer.on("lock-status", (_, data) => callback(data)),
+  onWarningStatus: (callback) => ipcRenderer.on("warning-status", (_, data) => callback(data)),
+  onWarningStart: (callback) => ipcRenderer.on("warning-start", (_, data) => callback(data))
 });
 
 contextBridge.exposeInMainWorld("pro", {
@@ -22,5 +24,14 @@ contextBridge.exposeInMainWorld("pro", {
 
 contextBridge.exposeInMainWorld("gate", {
   onProblem: (callback) => ipcRenderer.on("math-problem", (_, data) => callback(data)),
-  submitAnswer: (payload) => ipcRenderer.send("math-answer", payload)
+  submitAnswer: (payload) => ipcRenderer.send("math-answer", payload),
+  onMathResult: (callback) => ipcRenderer.on("math-result", (_, data) => callback(data)),
+  onMathCountdown: (callback) => ipcRenderer.on("math-countdown", (_, data) => callback(data))
+});
+
+contextBridge.exposeInMainWorld("stats", {
+  openStats: () => ipcRenderer.send("open-stats"),
+  requestFullStats: () => ipcRenderer.send("request-full-stats"),
+  onFullStats: (callback) => ipcRenderer.on("full-stats", (_, data) => callback(data)),
+  exportReport: () => ipcRenderer.send("export-report")
 });

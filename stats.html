@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>统计详情</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: #0f1115;
+        color: #e6e8ef;
+        padding: 24px;
+        min-height: 100vh;
+      }
+      .header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 24px;
+      }
+      h1 { font-size: 22px; }
+      .badge {
+        display: inline-block;
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .badge-normal { background: #1b3a2d; color: #4ade80; }
+      .badge-impulse { background: #3a1b1b; color: #f87171; }
+      .badge-resist { background: #3a2e1b; color: #fbbf24; }
+      .badge-fake { background: #1b2a3a; color: #60a5fa; }
+      .badge-nodata { background: #2b2f3a; color: #9aa3b2; }
+      .cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 12px;
+        margin-bottom: 24px;
+      }
+      .stat-card {
+        background: #181b22;
+        border-radius: 12px;
+        padding: 16px;
+        text-align: center;
+      }
+      .stat-card .value {
+        font-size: 28px;
+        font-weight: 700;
+        margin-bottom: 4px;
+      }
+      .stat-card .label {
+        font-size: 13px;
+        color: #7f8897;
+      }
+      .chart-section {
+        background: #181b22;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 16px;
+      }
+      .chart-section h2 {
+        font-size: 16px;
+        margin-bottom: 16px;
+        color: #9aa3b2;
+      }
+      canvas {
+        width: 100%;
+        height: 200px;
+        display: block;
+      }
+      .score-display {
+        text-align: center;
+        padding: 20px 0;
+      }
+      .score-display .big {
+        font-size: 64px;
+        font-weight: 800;
+      }
+      .score-display .desc {
+        font-size: 14px;
+        color: #7f8897;
+        margin-top: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <h1>数据统计</h1>
+      <span class="badge badge-nodata" id="behaviorBadge">数据不足</span>
+    </div>
+
+    <div class="score-display">
+      <div class="big" id="weightedScore">0</div>
+      <div class="desc">7 天综合拖延指数</div>
+    </div>
+
+    <div class="cards" id="todayCards">
+      <div class="stat-card">
+        <div class="value" id="sUnlock">0</div>
+        <div class="label">解锁次数</div>
+      </div>
+      <div class="stat-card">
+        <div class="value" id="sForced">0</div>
+        <div class="label">强制锁屏</div>
+      </div>
+      <div class="stat-card">
+        <div class="value" id="sMathErr">0</div>
+        <div class="label">答题错误</div>
+      </div>
+      <div class="stat-card">
+        <div class="value" id="sQuickUnlock">0</div>
+        <div class="label">快速解锁</div>
+      </div>
+      <div class="stat-card">
+        <div class="value" id="sSessions">0</div>
+        <div class="label">专注次数</div>
+      </div>
+      <div class="stat-card">
+        <div class="value" id="sTotalFocus">0</div>
+        <div class="label">总专注(分)</div>
+      </div>
+    </div>
+
+    <div class="chart-section">
+      <h2>最近 7 天专注时长</h2>
+      <canvas id="focusChart" height="200"></canvas>
+    </div>
+
+    <div class="chart-section">
+      <h2>拖延指数趋势</h2>
+      <canvas id="delayChart" height="200"></canvas>
+    </div>
+
+    <script src="stats.js"></script>
+  </body>
+</html>
