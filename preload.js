@@ -13,8 +13,6 @@ contextBridge.exposeInMainWorld("lockscreen", {
 contextBridge.exposeInMainWorld("pro", {
   onCapturePhoto: (callback) => ipcRenderer.on("capture-photo", () => callback()),
   savePhoto: (base64) => ipcRenderer.send("save-photo", base64),
-  setLicense: (key) => ipcRenderer.send("set-license", key),
-  onLicense: (callback) => ipcRenderer.on("license-status", (_, data) => callback(data)),
   requestStats: () => ipcRenderer.send("request-stats"),
   onStats: (callback) => ipcRenderer.on("stats-status", (_, data) => callback(data)),
   getSettings: () => ipcRenderer.send("get-settings"),
@@ -34,4 +32,16 @@ contextBridge.exposeInMainWorld("stats", {
   requestFullStats: () => ipcRenderer.send("request-full-stats"),
   onFullStats: (callback) => ipcRenderer.on("full-stats", (_, data) => callback(data)),
   exportReport: () => ipcRenderer.send("export-report")
+});
+
+contextBridge.exposeInMainWorld("license", {
+  activate: (key) => ipcRenderer.invoke("license:activate", key),
+  getStatus: () => ipcRenderer.invoke("license:getStatus"),
+  deactivate: () => ipcRenderer.invoke("license:deactivate"),
+  onStatusChanged: (cb) => ipcRenderer.on("license-changed", (_, d) => cb(d)),
+  onProRequired: (cb) => ipcRenderer.on("pro-required", (_, d) => cb(d)),
+});
+
+contextBridge.exposeInMainWorld("app", {
+  openExternal: (url) => ipcRenderer.send("open-external", url),
 });

@@ -1,9 +1,10 @@
-const { app, BrowserWindow, ipcMain, powerMonitor } = require("electron");
+const { app, BrowserWindow, ipcMain, powerMonitor, shell } = require("electron");
 const path = require("path");
 const { exec } = require("child_process");
 const fs = require("fs");
 const delayIndex = require("./delayIndex");
 const photoCrypto = require("./crypto");
+const license = require("./license");
 
 app.commandLine.appendSwitch("no-sandbox");
 
@@ -33,37 +34,12 @@ const photosDir = path.join(userDataDir, "photos");
 const statsFile = path.join(userDataDir, "stats.json");
 const licenseFile = path.join(userDataDir, "license.json");
 const settingsFile = path.join(userDataDir, "settings.json");
-let licenseEnabled = true;
-let licenseKey = "";
 let stats = {};
 let settings = { focusMinutes: 1, captureEnabled: true, mathGateEnabled: true, apiBase: "", apiToken: "" };
 
 const ensureDirs = () => {
   try {
     if (!fs.existsSync(photosDir)) fs.mkdirSync(photosDir, { recursive: true });
-  } catch {}
-};
-
-const loadLicense = () => {
-  try {
-    const raw = fs.readFileSync(licenseFile, "utf-8");
-    const data = JSON.parse(raw);
-    licenseEnabled = !!data && !!data.key;
-    licenseKey = (data && data.key) || "";
-  } catch {
-    licenseEnabled = true;
-    licenseKey = "";
-  }
-};
-
-const saveLicense = (key) => {
-  try {
-    fs.writeFileSync(licenseFile, JSON.stringify({ key }), "utf-8");
-    licenseEnabled = !!key;
-    licenseKey = key || "";
-    if (mainWindow) {
-      mainWindow.webContents.send("license-status", { enabled: licenseEnabled });
-    }
   } catch {}
 };
 
@@ -152,16 +128,6 @@ const syncStatsToday = async () => {
 const syncPhotoBase64 = async (base64) => {
   if (!apiEnabled() || !base64) return;
   await postJson("/api/photos", { image: base64, ts: Date.now() });
-};
-
-const validateLicenseOnline = async (key) => {
-  if (!settings.apiBase || !settings.apiToken || !key) return true;
-  try {
-    const ok = await postJson("/api/license/validate", { key });
-    return ok;
-  } catch {
-    return true;
-  }
 };
 
 const createMainWindow = () => {
@@ -319,7 +285,8 @@ const lockScreen = () => {
     saveStats();
   }
 
-  const strategy = getAdaptiveStrategy();
+  const BASE_STRATEGY = { mathLevel: 1, extraLockMs: 0, doubleLock: false, forceCapture: false, score: 0, behavior: "数据不足" };
+  const strategy = license.isPro() ? getAdaptiveStrategy() : BASE_STRATEGY;
   currentMathLevel = strategy.mathLevel;
   const effectiveLockMs = lockDurationMs + strategy.extraLockMs;
 
@@ -374,7 +341,8 @@ const startFocus = () => {
   focusSessionStart = Date.now();
 
   // 应用自适应策略
-  const strategy = getAdaptiveStrategy();
+  const BASE_STRATEGY = { mathLevel: 1, extraLockMs: 0, doubleLock: false, forceCapture: false, score: 0, behavior: "数据不足" };
+  const strategy = license.isPro() ? getAdaptiveStrategy() : BASE_STRATEGY;
   currentMathLevel = strategy.mathLevel;
 
   const warningLeadMs = 30000;
@@ -395,15 +363,13 @@ const startFocus = () => {
     }, focusDurationMs);
   }
 
-  if (licenseEnabled && mainWindow) {
+  if (license.isPro() && settings.captureEnabled && mainWindow) {
     const min = 5000;
     const max = Math.max(min, focusDurationMs - 5000);
     const delay = Math.floor(Math.random() * (max - min)) + min;
-    if (settings.captureEnabled) {
-      captureTimer = setTimeout(() => {
-        mainWindow.webContents.send("capture-photo");
-      }, delay);
-    }
+    captureTimer = setTimeout(() => {
+      mainWindow.webContents.send("capture-photo");
+    }, delay);
   }
 
   if (mainWindow) {
@@ -430,27 +396,18 @@ ipcMain.on("stop-focus", () => {
 });
 
 ipcMain.on("save-photo", (_, base64) => {
+  if (!license.isPro()) return;
   try {
     const b64 = String(base64 || "");
     const idx = b64.indexOf("base64,");
     const raw = idx >= 0 ? b64.slice(idx + 7) : b64;
     const buf = Buffer.from(raw, "base64");
     // AES 加密后保存（扩展名 .enc 标识已加密）
-    const encrypted = photoCrypto.encrypt(buf, licenseKey);
+    const encrypted = photoCrypto.encrypt(buf, license.load().key || "");
     const name = `photo_${Date.now()}.enc`;
     fs.writeFileSync(path.join(photosDir, name), encrypted);
   } catch {}
   syncPhotoBase64(base64);
-});
-
-ipcMain.on("set-license", (_, key) => {
-  saveLicense(key);
-  validateLicenseOnline(key).then((ok) => {
-    licenseEnabled = !!ok;
-    if (mainWindow) {
-      mainWindow.webContents.send("license-status", { enabled: licenseEnabled });
-    }
-  });
 });
 
 ipcMain.on("request-stats", () => {
@@ -463,12 +420,13 @@ app.on("before-quit", (event) => {
   }
 });
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   ensureDirs();
-  loadLicense();
   loadStats();
   loadSettings();
   createMainWindow();
+  await license.init(mainWindow);
+  license.startPeriodicCheck(mainWindow);
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createMainWindow();
@@ -495,7 +453,7 @@ app.whenReady().then(() => {
           remainingMs: 0
         });
       }
-      if (settings.mathGateEnabled) {
+      if (license.isPro() && settings.mathGateEnabled) {
         const math = createMathWindow();
         math.once("ready-to-show", () => {
           math.show();
@@ -674,6 +632,10 @@ const createStatsWindow = () => {
 };
 
 ipcMain.on("open-stats", () => {
+  if (!license.isPro()) {
+    if (mainWindow) mainWindow.webContents.send("pro-required", { feature: "详细统计图表" });
+    return;
+  }
   createStatsWindow();
 });
 
@@ -691,11 +653,39 @@ ipcMain.on("request-full-stats", (event) => {
 
 // PDF 周报导出
 ipcMain.on("export-report", async () => {
+  if (!license.isPro()) {
+    if (mainWindow) mainWindow.webContents.send("pro-required", { feature: "PDF 周报导出" });
+    return;
+  }
   try {
     const report = require("./report");
     await report.exportPDF(stats, mainWindow);
   } catch (err) {
     console.error("PDF export error:", err);
+  }
+});
+
+// ---- 许可证 IPC（invoke/handle 模式）----
+ipcMain.handle("license:activate", async (_, key) => {
+  const result = await license.activate(key);
+  if (mainWindow) mainWindow.webContents.send("license-changed", license.getStatus());
+  return result;
+});
+
+ipcMain.handle("license:getStatus", () => {
+  return license.getStatus();
+});
+
+ipcMain.handle("license:deactivate", async () => {
+  const result = await license.deactivate();
+  if (mainWindow) mainWindow.webContents.send("license-changed", license.getStatus());
+  return result;
+});
+
+// 安全地打开外部链接
+ipcMain.on("open-external", (_, url) => {
+  if (typeof url === "string" && (url.startsWith("https://") || url.startsWith("http://"))) {
+    shell.openExternal(url);
   }
 });
 
