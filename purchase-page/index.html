@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>购买 FocusGuard Pro - 专注力提升工具</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 900px;
+      width: 100%;
+    }
+
+    .header {
+      text-align: center;
+      color: white;
+      margin-bottom: 40px;
+    }
+
+    .header h1 {
+      font-size: 36px;
+      margin-bottom: 12px;
+      font-weight: 700;
+    }
+
+    .header p {
+      font-size: 18px;
+      opacity: 0.9;
+    }
+
+    .pricing-card {
+      background: white;
+      border-radius: 20px;
+      padding: 40px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+
+    .plan-header {
+      text-align: center;
+      padding-bottom: 30px;
+      border-bottom: 2px solid #f0f0f0;
+    }
+
+    .plan-name {
+      font-size: 24px;
+      font-weight: 700;
+      color: #333;
+      margin-bottom: 16px;
+    }
+
+    .plan-price {
+      font-size: 48px;
+      font-weight: 800;
+      color: #667eea;
+      margin-bottom: 8px;
+    }
+
+    .plan-price span {
+      font-size: 20px;
+      color: #666;
+      font-weight: 400;
+    }
+
+    .plan-description {
+      color: #666;
+      font-size: 14px;
+    }
+
+    .features {
+      padding: 30px 0;
+      border-bottom: 2px solid #f0f0f0;
+    }
+
+    .features h3 {
+      font-size: 18px;
+      margin-bottom: 20px;
+      color: #333;
+    }
+
+    .feature-list {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+
+    .feature-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .feature-icon {
+      color: #4ade80;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .feature-text {
+      color: #555;
+      font-size: 15px;
+      line-height: 1.5;
+    }
+
+    .payment-section {
+      padding: 30px 0;
+    }
+
+    .payment-section h3 {
+      font-size: 18px;
+      margin-bottom: 20px;
+      color: #333;
+      text-align: center;
+    }
+
+    .payment-methods {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      margin-bottom: 24px;
+    }
+
+    .payment-method {
+      flex: 1;
+      max-width: 200px;
+      padding: 20px;
+      border: 2px solid #e0e0e0;
+      border-radius: 12px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .payment-method:hover {
+      border-color: #667eea;
+      background: #f8f9ff;
+    }
+
+    .payment-method.active {
+      border-color: #667eea;
+      background: #f8f9ff;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+    }
+
+    .payment-icon {
+      font-size: 40px;
+      margin-bottom: 8px;
+    }
+
+    .payment-name {
+      font-size: 16px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .buy-button {
+      width: 100%;
+      padding: 18px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 18px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .buy-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    .buy-button:active {
+      transform: translateY(0);
+    }
+
+    .buy-button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .guarantee {
+      text-align: center;
+      margin-top: 20px;
+      color: #666;
+      font-size: 14px;
+    }
+
+    .guarantee-icon {
+      color: #4ade80;
+      margin-right: 4px;
+    }
+
+    /* 支付二维码弹窗 */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal.visible {
+      display: flex;
+    }
+
+    .modal-content {
+      background: white;
+      border-radius: 20px;
+      padding: 40px;
+      max-width: 400px;
+      width: 90%;
+      text-align: center;
+    }
+
+    .modal-title {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      color: #333;
+    }
+
+    .modal-subtitle {
+      color: #666;
+      margin-bottom: 24px;
+      font-size: 14px;
+    }
+
+    .qrcode-container {
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+    }
+
+    #qrcode {
+      display: inline-block;
+    }
+
+    .payment-amount {
+      font-size: 32px;
+      font-weight: 800;
+      color: #667eea;
+      margin-bottom: 20px;
+    }
+
+    .payment-status {
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      font-size: 14px;
+    }
+
+    .payment-status.waiting {
+      background: #fff3cd;
+      color: #856404;
+    }
+
+    .payment-status.success {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .payment-status.error {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    .close-modal {
+      background: #e0e0e0;
+      color: #333;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .close-modal:hover {
+      background: #d0d0d0;
+    }
+
+    /* 成功页面 */
+    .success-page {
+      display: none;
+      text-align: center;
+    }
+
+    .success-page.visible {
+      display: block;
+    }
+
+    .success-icon {
+      font-size: 80px;
+      color: #4ade80;
+      margin-bottom: 20px;
+    }
+
+    .success-title {
+      font-size: 28px;
+      font-weight: 700;
+      color: #333;
+      margin-bottom: 16px;
+    }
+
+    .license-key-box {
+      background: #f8f9fa;
+      border: 2px dashed #667eea;
+      border-radius: 12px;
+      padding: 24px;
+      margin: 24px 0;
+    }
+
+    .license-key-label {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 8px;
+    }
+
+    .license-key {
+      font-size: 24px;
+      font-weight: 700;
+      color: #667eea;
+      font-family: 'Courier New', monospace;
+      letter-spacing: 2px;
+      margin-bottom: 12px;
+    }
+
+    .copy-button {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 10px 24px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .copy-button:hover {
+      background: #5568d3;
+    }
+
+    .success-instructions {
+      text-align: left;
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 12px;
+      margin-top: 24px;
+    }
+
+    .success-instructions h4 {
+      font-size: 16px;
+      margin-bottom: 12px;
+      color: #333;
+    }
+
+    .success-instructions ol {
+      margin-left: 20px;
+      color: #555;
+      line-height: 1.8;
+    }
+
+    .success-instructions li {
+      margin-bottom: 8px;
+    }
+
+    @media (max-width: 768px) {
+      .feature-list {
+        grid-template-columns: 1fr;
+      }
+
+      .payment-methods {
+        flex-direction: column;
+      }
+
+      .payment-method {
+        max-width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🎯 FocusGuard Pro</h1>
+      <p>专业的专注力提升工具，助你高效工作学习</p>
+    </div>
+
+    <!-- 购买页面 -->
+    <div class="pricing-card" id="purchasePage">
+      <div class="plan-header">
+        <div class="plan-name">FocusGuard Pro 永久版</div>
+        <div class="plan-price">¥99 <span>/ 永久使用</span></div>
+        <div class="plan-description">一次购买，终身使用，免费更新</div>
+      </div>
+
+      <div class="features">
+        <h3>✨ Pro 版本包含以下功能</h3>
+        <div class="feature-list">
+          <div class="feature-item">
+            <span class="feature-icon">✓</span>
+            <span class="feature-text">随机拍照监督，防止假专注</span>
+          </div>
+          <div class="feature-item">
+            <span class="feature-icon">✓</span>
+            <span class="feature-text">解锁答题挑战，提升专注质量</span>
+          </div>
+          <div class="feature-item">
+            <span class="feature-icon">✓</span>
+            <span class="feature-text">自适应难度系统，个性化体验</span>
+          </div>
+          <div class="feature-item">
+            <span class="feature-icon">✓</span>
+            <span class="feature-text">详细统计图表，数据可视化</span>
+          </div>
+          <div class="feature-item">
+            <span class="feature-icon">✓</span>
+            <span class="feature-text">PDF 周报导出，记录成长轨迹</span>
+          </div>
+          <div class="feature-item">
+            <span class="feature-icon">✓</span>
+            <span class="feature-text">行为模式分析，了解拖延习惯</span>
+          </div>
+          <div class="feature-item">
+            <span class="feature-icon">✓</span>
+            <span class="feature-text">API 数据同步，多设备协同</span>
+          </div>
+          <div class="feature-item">
+            <span class="feature-icon">✓</span>
+            <span class="feature-text">终身免费更新，持续优化</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="payment-section">
+        <h3>选择支付方式</h3>
+        <div class="payment-methods">
+          <div class="payment-method active" data-method="wechat">
+            <div class="payment-icon">💚</div>
+            <div class="payment-name">微信支付</div>
+          </div>
+          <div class="payment-method" data-method="alipay">
+            <div class="payment-icon">💙</div>
+            <div class="payment-name">支付宝</div>
+          </div>
+        </div>
+
+        <button class="buy-button" id="buyButton">
+          立即购买 ¥99
+        </button>
+
+        <div class="guarantee">
+          <span class="guarantee-icon">🔒</span>
+          安全支付 · 7天无理由退款 · 终身技术支持
+        </div>
+      </div>
+    </div>
+
+    <!-- 支付二维码弹窗 -->
+    <div class="modal" id="paymentModal">
+      <div class="modal-content">
+        <div class="modal-title" id="modalTitle">微信扫码支付</div>
+        <div class="modal-subtitle">请使用微信扫描下方二维码完成支付</div>
+        
+        <div class="payment-amount">¥99.00</div>
+        
+        <div class="qrcode-container">
+          <div id="qrcode"></div>
+        </div>
+
+        <div class="payment-status waiting" id="paymentStatus">
+          等待支付中...
+        </div>
+
+        <button class="close-modal" id="closeModal">取消支付</button>
+      </div>
+    </div>
+
+    <!-- 成功页面 -->
+    <div class="pricing-card success-page" id="successPage">
+      <div class="success-icon">🎉</div>
+      <div class="success-title">支付成功！</div>
+      <p style="color: #666; margin-bottom: 24px;">感谢您购买 FocusGuard Pro，以下是您的许可证密钥</p>
+
+      <div class="license-key-box">
+        <div class="license-key-label">您的许可证密钥</div>
+        <div class="license-key" id="licenseKey">XXXX-XXXX-XXXX-XXXX</div>
+        <button class="copy-button" id="copyButton">📋 复制密钥</button>
+      </div>
+
+      <div class="success-instructions">
+        <h4>📝 如何激活</h4>
+        <ol>
+          <li>打开 FocusGuard 应用</li>
+          <li>进入"设置" Tab</li>
+          <li>在"许可证"区域粘贴上方密钥</li>
+          <li>点击"激活"按钮</li>
+          <li>享受 Pro 版本的全部功能！</li>
+        </ol>
+      </div>
+
+      <p style="color: #999; font-size: 13px; margin-top: 20px;">
+        密钥已发送至您的邮箱，请妥善保管。如有问题，请联系客服。
+      </p>
+    </div>
+  </div>
+
+  <!-- QRCode.js 库 -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  
+  <script>
+    // 配置
+    const API_BASE = 'http://localhost:3000'; // 后端 API 地址
+    
+    let selectedPaymentMethod = 'wechat';
+    let currentOrderId = null;
+    let pollingInterval = null;
+
+    // 检查是否在 Electron 环境中
+    const isElectron = typeof window !== 'undefined' && window.process && window.process.type;
+
+    // 支付方式选择
+    document.querySelectorAll('.payment-method').forEach(method => {
+      method.addEventListener('click', () => {
+        document.querySelectorAll('.payment-method').forEach(m => m.classList.remove('active'));
+        method.classList.add('active');
+        selectedPaymentMethod = method.dataset.method;
+      });
+    });
+
+    // 购买按钮
+    document.getElementById('buyButton').addEventListener('click', async () => {
+      const button = document.getElementById('buyButton');
+      button.disabled = true;
+      button.textContent = '创建订单中...';
+
+      try {
+        // 调用后端 API 创建订单
+        const response = await fetch(`${API_BASE}/api/orders/create`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            product: 'focusguard-pro',
+            paymentMethod: selectedPaymentMethod,
+            amount: 99.00
+          })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          currentOrderId = data.orderId;
+          showPaymentModal(data.qrcodeUrl, selectedPaymentMethod);
+          startPolling(data.orderId);
+        } else {
+          alert('创建订单失败：' + data.message);
+        }
+      } catch (error) {
+        // 如果后端未启动，显示友好提示
+        alert('无法连接到支付服务器。\n\n开发测试模式：\n1. 请先启动后端服务：cd purchase-page && node server.js\n2. 或者使用测试脚本：node test-payment.js\n\n生产环境：\n请确保支付服务器正常运行。');
+        console.error(error);
+      } finally {
+        button.disabled = false;
+        button.textContent = '立即购买 ¥99';
+      }
+    });
+
+    // 显示支付弹窗
+    function showPaymentModal(qrcodeUrl, method) {
+      const modal = document.getElementById('paymentModal');
+      const title = document.getElementById('modalTitle');
+      
+      title.textContent = method === 'wechat' ? '微信扫码支付' : '支付宝扫码支付';
+      
+      // 清空之前的二维码
+      document.getElementById('qrcode').innerHTML = '';
+      
+      // 生成新二维码
+      new QRCode(document.getElementById('qrcode'), {
+        text: qrcodeUrl,
+        width: 200,
+        height: 200,
+        colorDark: '#000000',
+        colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.H
+      });
+
+      modal.classList.add('visible');
+    }
+
+    // 轮询支付状态
+    function startPolling(orderId) {
+      pollingInterval = setInterval(async () => {
+        try {
+          const response = await fetch(`${API_BASE}/api/orders/status/${orderId}`);
+          const data = await response.json();
+
+          if (data.status === 'paid') {
+            stopPolling();
+            showSuccess(data.licenseKey);
+          } else if (data.status === 'expired' || data.status === 'cancelled') {
+            stopPolling();
+            showError('订单已过期或取消');
+          }
+        } catch (error) {
+          console.error('轮询错误:', error);
+        }
+      }, 2000); // 每 2 秒查询一次
+    }
+
+    // 停止轮询
+    function stopPolling() {
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+        pollingInterval = null;
+      }
+    }
+
+    // 显示成功页面
+    function showSuccess(licenseKey) {
+      document.getElementById('paymentModal').classList.remove('visible');
+      document.getElementById('purchasePage').style.display = 'none';
+      document.getElementById('successPage').classList.add('visible');
+      document.getElementById('licenseKey').textContent = licenseKey;
+    }
+
+    // 显示错误
+    function showError(message) {
+      const status = document.getElementById('paymentStatus');
+      status.className = 'payment-status error';
+      status.textContent = message;
+    }
+
+    // 关闭弹窗
+    document.getElementById('closeModal').addEventListener('click', () => {
+      stopPolling();
+      document.getElementById('paymentModal').classList.remove('visible');
+    });
+
+    // 复制密钥
+    document.getElementById('copyButton').addEventListener('click', () => {
+      const licenseKey = document.getElementById('licenseKey').textContent;
+      navigator.clipboard.writeText(licenseKey).then(() => {
+        const button = document.getElementById('copyButton');
+        button.textContent = '✓ 已复制';
+        setTimeout(() => {
+          button.textContent = '📋 复制密钥';
+        }, 2000);
+      });
+    });
+  </script>
+</body>
+</html>

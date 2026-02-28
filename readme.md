@@ -213,3 +213,211 @@ delayScore = impulseScore + escapeScore + resistanceScore - stabilityBonus
 
 
 # lockScreen
+
+
+---
+
+## 🚀 快速开始指南
+
+### 用户使用
+
+1. 下载并安装 FocusGuard
+2. 启动应用，享受 7 天免费试用
+3. 试用期结束后，购买 Pro 版解锁全部功能
+
+### 开发者测试
+
+```bash
+# 安装依赖
+npm install
+
+# 启动应用
+npm start
+
+# 测试许可证状态
+npm run test:license new-user
+```
+
+## 💳 购买和激活流程
+
+### 完整购买流程
+
+1. 在应用中点击"升级 Pro"或"立即购买"
+2. 打开购买页面，选择支付方式（微信/支付宝）
+3. 扫码支付 ¥99
+4. 支付成功后自动生成许可证密钥
+5. 复制密钥到应用中激活
+6. 享受 Pro 功能！
+
+### 测试购买流程
+
+```bash
+# 启动购买页面后端
+cd purchase-page
+npm install
+node server.js
+
+# 在浏览器打开 purchase-page/index.html
+
+# 运行测试脚本
+node test-payment.js
+```
+
+## 📚 详细文档
+
+- [快速开始](QUICK_START.md) - 5 分钟快速上手
+- [支付集成指南](PAYMENT_INTEGRATION_GUIDE.md) - 完整的支付接入教程
+- [许可证配置](LICENSE_SETUP.md) - 许可证系统配置
+- [测试指南](TESTING_GUIDE.md) - 完整的测试清单
+- [项目总结](SUMMARY.md) - 项目总览和架构说明
+
+## 🏗️ 项目结构
+
+```
+focusguard/
+├── main.js                 # Electron 主进程
+├── renderer.js             # 渲染进程
+├── index.html              # 主界面
+├── license.js              # 许可证管理
+├── preload.js              # 预加载脚本
+├── delayIndex.js           # 拖延指数计算
+├── report.js               # PDF 报告生成
+│
+├── purchase-page/          # 购买页面系统（新增）
+│   ├── index.html         # 购买页面前端（精美设计）
+│   ├── server.js          # 后端服务（支付处理）
+│   ├── test-payment.js    # 测试脚本
+│   ├── package.json       # 依赖配置
+│   └── README.md          # 详细文档
+│
+└── docs/                   # 文档目录
+    ├── QUICK_START.md
+    ├── PAYMENT_INTEGRATION_GUIDE.md
+    ├── LICENSE_SETUP.md
+    ├── TESTING_GUIDE.md
+    └── SUMMARY.md
+```
+
+## 🔧 技术栈
+
+- **前端**: Electron, HTML, CSS, JavaScript
+- **后端**: Node.js, Express
+- **支付**: 微信支付 / 支付宝 / LemonSqueezy
+- **许可证**: LemonSqueezy API
+- **数据库**: SQLite（本地）/ PostgreSQL（可选）
+
+## 🧪 测试
+
+### 测试许可证状态
+
+```bash
+# 新用户（试用期 7 天）
+npm run test:license new-user
+
+# 试用期即将到期
+npm run test:license trial-6-days
+
+# 试用期已过期
+npm run test:license trial-expired
+
+# Pro 已激活
+npm run test:license pro-active
+```
+
+### 测试支付流程
+
+```bash
+cd purchase-page
+node test-payment.js
+```
+
+## 💰 定价策略
+
+- **免费版**: 7 天试用，基础功能
+- **Pro 版**: ¥99 永久使用，解锁全部功能
+
+### Pro 版功能
+
+- ✅ 随机拍照监督
+- ✅ 解锁答题挑战
+- ✅ 自适应难度系统
+- ✅ 详细统计图表
+- ✅ PDF 周报导出
+- ✅ 行为模式分析
+- ✅ 终身免费更新
+
+## 📦 部署
+
+### 开发环境
+
+```bash
+npm install
+npm start
+```
+
+### 生产环境
+
+```bash
+# 打包应用
+npm run build
+
+# 部署购买页面
+cd purchase-page
+npm install
+pm2 start server.js
+```
+
+详细部署步骤请参考 [支付集成指南](PAYMENT_INTEGRATION_GUIDE.md)
+
+## 📞 支持与反馈
+
+- 邮箱: support@focusguard.com
+- 文档: 查看项目根目录的 Markdown 文档
+- 问题: 提交 GitHub Issue
+
+## 📄 许可证
+
+MIT License
+
+## 🙏 致谢
+
+感谢所有使用和支持 FocusGuard 的用户！
+
+
+---
+
+## 🐟 使用闲鱼销售（推荐）
+
+### 为什么选择闲鱼？
+
+- ✅ 无需营业执照
+- ✅ 无需技术接入
+- ✅ 5 分钟上线
+- ✅ 零成本运营
+
+### 快速开始
+
+1. **测试跳转**
+   ```bash
+   npm start
+   # 点击"升级 Pro"，会跳转到闲鱼商品页面
+   ```
+
+2. **生成许可证密钥**
+   ```bash
+   npm run generate:license
+   # 或生成多个
+   npm run generate:license 10
+   ```
+
+3. **发货给买家**
+   - 收到订单后生成密钥
+   - 通过闲鱼消息发送给买家
+   - 买家在应用中激活
+
+### 详细文档
+
+- [闲鱼集成指南](XIANYU_INTEGRATION_GUIDE.md) - 完整的销售流程
+- [闲鱼快速开始](XIANYU_QUICK_START.md) - 30 秒测试指南
+
+---

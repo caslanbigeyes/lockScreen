@@ -4,7 +4,11 @@
   "main": "main.js",
   "private": true,
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "test:license": "node test-license-states.js",
+    "test:activation": "node test-activation.js",
+    "generate:license": "node generate-license.js",
+    "gen": "node generate-license-simple.js"
   },
   "dependencies": {
     "electron": "^30.0.0"

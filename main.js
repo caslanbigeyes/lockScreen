@@ -529,6 +529,11 @@ const randomProblem = (level) => {
   }
 
   expectedAnswer = ans;
+  console.log('=== 生成数学题 ===');
+  console.log('题目:', display);
+  console.log('答案:', ans, '(类型:', typeof ans, ')');
+  console.log('难度:', level);
+  console.log('================');
   return { display, level };
 };
 
@@ -583,7 +588,26 @@ const createMathWindow = () => {
 };
 
 ipcMain.on("math-answer", (_, payload) => {
-  const pass = Number(payload && payload.answer) === expectedAnswer;
+  // 确保 payload 和 answer 存在
+  if (!payload || payload.answer === undefined || payload.answer === null) {
+    console.log('=== 数学答题验证 ===');
+    console.log('无效的 payload:', payload);
+    console.log('==================');
+    return;
+  }
+  
+  const userAnswer = Number(payload.answer);
+  const pass = userAnswer === expectedAnswer;
+  
+  // 调试日志
+  console.log('=== 数学答题验证 ===');
+  console.log('Payload:', payload);
+  console.log('用户答案:', userAnswer, '(类型:', typeof userAnswer, ')');
+  console.log('正确答案:', expectedAnswer, '(类型:', typeof expectedAnswer, ')');
+  console.log('是否通过:', pass);
+  console.log('严格相等:', userAnswer === expectedAnswer);
+  console.log('==================');
+  
   if (pass) {
     closeMathWindow();
     expectedAnswer = null;
@@ -687,6 +711,18 @@ ipcMain.on("open-external", (_, url) => {
   if (typeof url === "string" && (url.startsWith("https://") || url.startsWith("http://"))) {
     shell.openExternal(url);
   }
+});
+
+// 获取购买链接
+ipcMain.handle("license:getPurchaseUrl", () => {
+  return license.PURCHASE_URL;
+});
+
+// 打开购买窗口
+ipcMain.on("open-purchase-window", () => {
+  // 直接在浏览器中打开闲鱼链接
+  const purchaseUrl = license.PURCHASE_URL;
+  shell.openExternal(purchaseUrl);
 });
 
 app.on("window-all-closed", () => {

@@ -38,6 +38,8 @@ contextBridge.exposeInMainWorld("license", {
   activate: (key) => ipcRenderer.invoke("license:activate", key),
   getStatus: () => ipcRenderer.invoke("license:getStatus"),
   deactivate: () => ipcRenderer.invoke("license:deactivate"),
+  getPurchaseUrl: () => ipcRenderer.invoke("license:getPurchaseUrl"),
+  openPurchaseWindow: () => ipcRenderer.send("open-purchase-window"),
   onStatusChanged: (cb) => ipcRenderer.on("license-changed", (_, d) => cb(d)),
   onProRequired: (cb) => ipcRenderer.on("pro-required", (_, d) => cb(d)),
 });

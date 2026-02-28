@@ -8,6 +8,7 @@ const { app } = require("electron");
 const LICENSE_FILE = path.join(app.getPath("userData"), "license.json");
 const LEMONSQUEEZY_API = "https://api.lemonsqueezy.com";
 const STORE_ID = process.env.LEMONSQUEEZY_STORE_ID || "";
+const PURCHASE_URL = process.env.PURCHASE_URL || "https://www.goofish.com/item?id=1026146077023";
 
 // 试用期 7 天，缓存有效期 7 天
 const TRIAL_DAYS = 7;
@@ -74,14 +75,12 @@ const getTrialDaysLeft = () => {
 };
 
 /**
- * 缓存是否仍有效（7 天内验证过且结果为 valid）
+ * 缓存是否仍有效（闲鱼模式：永久有效）
  */
 const isCacheValid = () => {
   if (!licenseData) load();
-  return (
-    licenseData.lastValidationResult === true &&
-    licenseData.lastValidatedAt + CACHE_DAYS * MS_PER_DAY > Date.now()
-  );
+  // 闲鱼模式：本地激活后永久有效，不需要定期在线验证
+  return licenseData.lastValidationResult === true;
 };
 
 /**
@@ -139,92 +138,80 @@ const lemonRequest = async (endpoint, body) => {
 };
 
 /**
- * 激活许可证
- * POST /v1/licenses/activate
+ * 激活许可证（闲鱼模式 - 本地验证）
  */
 const activate = async (licenseKey) => {
   if (!licenseKey || !licenseKey.trim()) {
     return { success: false, error: "请输入许可证密钥" };
   }
-  try {
-    const result = await lemonRequest("activate", {
-      license_key: licenseKey.trim(),
-      instance_name: `FocusGuard-${require("os").hostname()}`,
-    });
 
-    if (result.activated || result.license_key) {
-      licenseData.key = licenseKey.trim();
-      licenseData.instanceId = result.instance?.id || result.instance_id || "";
-      licenseData.status = "active";
-      licenseData.lastValidatedAt = Date.now();
-      licenseData.lastValidationResult = true;
-      save();
-      return { success: true };
-    }
+  // 确保已加载许可证数据
+  if (!licenseData) load();
 
-    return { success: false, error: result.error || result.message || "激活失败" };
-  } catch (err) {
-    return { success: false, error: `网络错误：${err.message}` };
+  const key = licenseKey.trim().toUpperCase(); // 统一转为大写
+  
+  // 验证密钥格式：XXXX-XXXX-XXXX-XXXX
+  const keyPattern = /^[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}$/;
+  if (!keyPattern.test(key)) {
+    return { 
+      success: false, 
+      error: "密钥格式不正确，应为：XXXX-XXXX-XXXX-XXXX（例如：5B9A-212C-54D7-ADE5）" 
+    };
   }
+
+  // 检查是否已经激活过其他密钥
+  if (licenseData.key && licenseData.key !== key && licenseData.status === "active") {
+    return { 
+      success: false, 
+      error: "此设备已激活其他密钥。如需更换，请先停用当前密钥。" 
+    };
+  }
+
+  // 本地激活（闲鱼模式）
+  licenseData.key = key;
+  licenseData.instanceId = require("os").hostname();
+  licenseData.status = "active";
+  licenseData.lastValidatedAt = Date.now();
+  licenseData.lastValidationResult = true;
+  save();
+
+  return { success: true };
 };
 
 /**
- * 在线验证许可证
- * POST /v1/licenses/validate
+ * 验证许可证（闲鱼模式 - 本地验证）
  */
 const validate = async () => {
   if (!licenseData || !licenseData.key) {
     return { valid: false, error: "无许可证密钥" };
   }
-  try {
-    const result = await lemonRequest("validate", {
-      license_key: licenseData.key,
-      instance_id: licenseData.instanceId,
-    });
 
-    const valid = result.valid === true;
-    licenseData.lastValidatedAt = Date.now();
-    licenseData.lastValidationResult = valid;
+  // 本地验证：检查密钥格式
+  const keyPattern = /^[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}$/;
+  const valid = keyPattern.test(licenseData.key);
 
-    if (valid) {
-      licenseData.status = "active";
-    } else {
-      // 验证失败且缓存过期 → 降级
-      if (!isCacheValid()) {
-        licenseData.status = "expired";
-      }
-    }
-    save();
-    return { valid, error: valid ? null : result.error || "验证失败" };
-  } catch (err) {
-    // 离线容忍：网络错误时检查缓存
-    if (isCacheValid()) {
-      return { valid: true, error: null };
-    }
-    // 缓存过期 → 降级
+  licenseData.lastValidatedAt = Date.now();
+  licenseData.lastValidationResult = valid;
+
+  if (valid) {
+    licenseData.status = "active";
+  } else {
     licenseData.status = "expired";
-    save();
-    return { valid: false, error: `离线且缓存过期` };
   }
+  
+  save();
+  return { valid, error: valid ? null : "密钥格式不正确" };
 };
 
 /**
- * 停用许可证
- * POST /v1/licenses/deactivate
+ * 停用许可证（闲鱼模式 - 本地清除）
  */
 const deactivate = async () => {
   if (!licenseData || !licenseData.key) {
     return { success: false };
   }
-  try {
-    await lemonRequest("deactivate", {
-      license_key: licenseData.key,
-      instance_id: licenseData.instanceId,
-    });
-  } catch {
-    // 即使网络失败也本地清除
-  }
 
+  // 本地清除许可证信息
   licenseData.key = "";
   licenseData.instanceId = "";
   licenseData.status = isTrialActive() ? "trial" : "expired";
@@ -244,7 +231,7 @@ const notifyWindow = (mainWindow) => {
 };
 
 /**
- * 启动时初始化：加载 + 在线验证（active 状态时）
+ * 启动时初始化：加载许可证数据（闲鱼模式）
  */
 const init = async (mainWindow) => {
   load();
@@ -255,25 +242,18 @@ const init = async (mainWindow) => {
     save();
   }
 
-  // active 状态时尝试在线验证
-  if (licenseData.status === "active") {
-    await validate();
-  }
-
+  // 闲鱼模式：不需要在线验证，本地激活后永久有效
   notifyWindow(mainWindow);
 };
 
 /**
- * 定期检查（每 6 小时）
+ * 定期检查（闲鱼模式：禁用在线验证）
  */
 const startPeriodicCheck = (mainWindow) => {
+  // 闲鱼模式不需要定期在线验证
+  // 本地激活后永久有效
   if (periodicTimer) clearInterval(periodicTimer);
-  periodicTimer = setInterval(async () => {
-    if (licenseData && licenseData.status === "active") {
-      await validate();
-      notifyWindow(mainWindow);
-    }
-  }, CHECK_INTERVAL_MS);
+  periodicTimer = null;
 };
 
 module.exports = {
@@ -288,4 +268,5 @@ module.exports = {
   deactivate,
   init,
   startPeriodicCheck,
+  PURCHASE_URL,
 };

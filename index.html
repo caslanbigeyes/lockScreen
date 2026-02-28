@@ -454,9 +454,15 @@
             <div class="license-status-text" id="licenseStatusText">加载中...</div>
             <!-- 未激活时：显示输入+激活按钮 -->
             <div id="licenseActivateArea">
+              <div class="license-help-text" style="font-size:12px;color:#7f8897;margin-bottom:10px;">
+                购买后，您将收到包含许可证密钥的邮件。请在下方输入密钥激活 Pro 功能。
+              </div>
               <div class="license-row">
-                <input id="licenseInput" placeholder="输入许可证 Key" />
+                <input id="licenseInput" placeholder="例如：XXXX-XXXX-XXXX-XXXX" />
                 <button class="btn btn-primary" id="activateLicenseBtn">激活</button>
+              </div>
+              <div class="license-help-link" style="margin-top:8px;text-align:center;">
+                <a href="#" id="purchaseLink" style="color:#3d7eff;font-size:13px;text-decoration:none;">还没有许可证？立即购买 →</a>
               </div>
             </div>
             <!-- 已激活时：显示密钥+停用按钮 -->

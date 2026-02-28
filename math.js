@@ -41,13 +41,33 @@ window.gate.onProblem((p) => {
 });
 
 submitBtn.addEventListener("click", () => {
-  const v = Number(answerEl.value);
+  const inputValue = answerEl.value.trim();
+  if (inputValue === '') {
+    console.log('输入为空，不提交');
+    return;
+  }
+  const v = Number(inputValue);
+  if (isNaN(v)) {
+    console.log('输入不是有效数字:', inputValue);
+    return;
+  }
+  console.log('提交答案:', v, '(输入值:', inputValue, ')');
   window.gate.submitAnswer({ answer: v });
 });
 
 answerEl.addEventListener("keydown", (e) => {
   if (e.key === "Enter") {
-    const v = Number(answerEl.value);
+    const inputValue = answerEl.value.trim();
+    if (inputValue === '') {
+      console.log('输入为空，不提交');
+      return;
+    }
+    const v = Number(inputValue);
+    if (isNaN(v)) {
+      console.log('输入不是有效数字:', inputValue);
+      return;
+    }
+    console.log('提交答案 (Enter):', v, '(输入值:', inputValue, ')');
     window.gate.submitAnswer({ answer: v });
   }
 });

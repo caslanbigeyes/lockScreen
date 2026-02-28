@@ -45,7 +45,8 @@ const mathGateEnabled = document.getElementById("mathGateEnabled");
 const apiBase = document.getElementById("apiBase");
 const apiToken = document.getElementById("apiToken");
 const licenseInput = document.getElementById("licenseInput");
-const setLicenseBtn = document.getElementById("setLicenseBtn");
+const activateLicenseBtn = document.getElementById("activateLicenseBtn");
+const deactivateLicenseBtn = document.getElementById("deactivateLicenseBtn");
 const exportReportBtn = document.getElementById("exportReportBtn");
 
 // ---- 状态 ----
@@ -278,9 +279,39 @@ apiToken.addEventListener("change", () => {
   }
 });
 
-setLicenseBtn.addEventListener("click", () => {
+activateLicenseBtn.addEventListener("click", async () => {
   const key = String(licenseInput.value || "").trim();
-  if (window.pro && window.pro.setLicense) window.pro.setLicense(key);
+  if (!key) return;
+  
+  const licenseFeedback = document.getElementById("licenseFeedback");
+  licenseFeedback.textContent = "激活中...";
+  licenseFeedback.className = "license-feedback loading";
+  
+  const result = await window.license.activate(key);
+  
+  if (result.success) {
+    licenseFeedback.textContent = "激活成功！";
+    licenseFeedback.className = "license-feedback success";
+  } else {
+    licenseFeedback.textContent = result.error || "激活失败";
+    licenseFeedback.className = "license-feedback error";
+  }
+});
+
+deactivateLicenseBtn.addEventListener("click", async () => {
+  const licenseFeedback = document.getElementById("licenseFeedback");
+  licenseFeedback.textContent = "停用中...";
+  licenseFeedback.className = "license-feedback loading";
+  
+  const result = await window.license.deactivate();
+  
+  if (result.success) {
+    licenseFeedback.textContent = "已停用";
+    licenseFeedback.className = "license-feedback success";
+  } else {
+    licenseFeedback.textContent = "停用失败";
+    licenseFeedback.className = "license-feedback error";
+  }
 });
 
 exportReportBtn.addEventListener("click", () => {
@@ -289,6 +320,129 @@ exportReportBtn.addEventListener("click", () => {
   }
 });
 
+// ---- 许可证状态监听和 UI 更新 ----
+const updateLicenseUI = (status) => {
+  const licenseBanner = document.getElementById("licenseBanner");
+  const bannerText = document.getElementById("bannerText");
+  const bannerAction = document.getElementById("bannerAction");
+  const licenseStatusText = document.getElementById("licenseStatusText");
+  const licenseActivateArea = document.getElementById("licenseActivateArea");
+  const licenseActiveArea = document.getElementById("licenseActiveArea");
+  const licenseKeyDisplay = document.getElementById("licenseKeyDisplay");
+  const captureBadge = document.getElementById("captureBadge");
+  const mathBadge = document.getElementById("mathBadge");
+  const captureRow = document.getElementById("captureRow");
+  const mathRow = document.getElementById("mathRow");
+
+  if (!status) return;
+
+  // 更新横幅
+  bannerText.textContent = status.message;
+  if (status.isPro) {
+    licenseBanner.className = "license-banner active";
+    bannerAction.style.display = "none";
+  } else if (status.status === "trial") {
+    licenseBanner.className = "license-banner trial";
+    bannerAction.style.display = "inline-block";
+    bannerAction.textContent = "升级 Pro";
+  } else {
+    licenseBanner.className = "license-banner expired";
+    bannerAction.style.display = "inline-block";
+    bannerAction.textContent = "升级 Pro";
+  }
+
+  // 更新许可证设置区域
+  licenseStatusText.textContent = status.message;
+  if (status.status === "active") {
+    licenseActivateArea.style.display = "none";
+    licenseActiveArea.style.display = "block";
+    licenseKeyDisplay.textContent = status.key;
+  } else {
+    licenseActivateArea.style.display = "block";
+    licenseActiveArea.style.display = "none";
+  }
+
+  // 更新 Pro 功能标记
+  if (status.isPro) {
+    captureBadge.style.display = "none";
+    mathBadge.style.display = "none";
+    captureRow.classList.remove("pro-locked");
+    mathRow.classList.remove("pro-locked");
+  } else {
+    captureBadge.style.display = "inline-block";
+    mathBadge.style.display = "inline-block";
+    captureRow.classList.add("pro-locked");
+    mathRow.classList.add("pro-locked");
+  }
+};
+
+// 监听许可证状态变化
+if (window.license && window.license.onStatusChanged) {
+  window.license.onStatusChanged((status) => {
+    updateLicenseUI(status);
+  });
+}
+
+// 监听 Pro 功能请求
+if (window.license && window.license.onProRequired) {
+  window.license.onProRequired((data) => {
+    const proModal = document.getElementById("proModal");
+    const proFeatureName = document.getElementById("proFeatureName");
+    proFeatureName.textContent = data.feature;
+    proModal.classList.add("visible");
+  });
+}
+
+// Pro 弹窗控制
+const proModal = document.getElementById("proModal");
+const proGetBtn = document.getElementById("proGetBtn");
+const proCloseBtn = document.getElementById("proCloseBtn");
+
+proGetBtn.addEventListener("click", () => {
+  // 打开购买窗口
+  if (window.license && window.license.openPurchaseWindow) {
+    window.license.openPurchaseWindow();
+  }
+  proModal.classList.remove("visible");
+});
+
+proCloseBtn.addEventListener("click", () => {
+  proModal.classList.remove("visible");
+});
+
+// 横幅按钮点击
+const bannerAction = document.getElementById("bannerAction");
+bannerAction.addEventListener("click", () => {
+  if (bannerAction.textContent === "升级 Pro") {
+    // 打开购买窗口
+    if (window.license && window.license.openPurchaseWindow) {
+      window.license.openPurchaseWindow();
+    }
+  } else {
+    const settingsTab = document.querySelector('[data-tab="settings"]');
+    settingsTab.click();
+  }
+});
+
+// 购买链接点击
+const purchaseLink = document.getElementById("purchaseLink");
+if (purchaseLink) {
+  purchaseLink.addEventListener("click", (e) => {
+    e.preventDefault();
+    // 打开购买窗口
+    if (window.license && window.license.openPurchaseWindow) {
+      window.license.openPurchaseWindow();
+    }
+  });
+}
+
 // ---- 初始化 ----
 if (window.pro && window.pro.getSettings) window.pro.getSettings();
 if (window.pro && window.pro.requestStats) window.pro.requestStats();
+
+// 初始化许可证状态
+if (window.license && window.license.getStatus) {
+  window.license.getStatus().then((status) => {
+    updateLicenseUI(status);
+  });
+}
