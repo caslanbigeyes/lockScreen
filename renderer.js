@@ -236,10 +236,14 @@ openDetailStats.addEventListener("click", () => {
 const applySettingsUI = (s) => {
   if (!s) return;
   focusMinutes.value = String(s.focusMinutes || 1);
+  focusDurationMs = (s.focusMinutes || 1) * 60 * 1000;
   captureEnabled.checked = !!s.captureEnabled;
   mathGateEnabled.checked = !!s.mathGateEnabled;
   if (s.apiBase) apiBase.value = s.apiBase;
   if (s.apiToken) apiToken.value = s.apiToken;
+  if (!focusStartTime) {
+    updateTimerDisplay();
+  }
 };
 
 if (window.pro && window.pro.onSettings) {

@@ -1,16 +1,110 @@
 {
   "name": "lockscreen-focus",
+  "productName": "FocusGuard",
   "version": "0.1.0",
+  "description": "专注力提升工具 - 强制锁屏与智能监控",
+  "author": "Your Name",
   "main": "main.js",
   "private": true,
   "scripts": {
     "start": "electron .",
     "test:license": "node test-license-states.js",
     "test:activation": "node test-activation.js",
+    "test:build": "node test-build-config.js",
     "generate:license": "node generate-license.js",
-    "gen": "node generate-license-simple.js"
+    "gen": "node generate-license-simple.js",
+    "build": "electron-builder",
+    "build:mac": "electron-builder --mac",
+    "build:win": "electron-builder --win",
+    "build:all": "electron-builder --mac --win",
+    "dist": "npm run build:all"
   },
-  "dependencies": {
-    "electron": "^30.0.0"
+  "build": {
+    "appId": "com.focusguard.app",
+    "productName": "FocusGuard",
+    "copyright": "Copyright © 2026",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "**/*",
+      "!**/*.md",
+      "!test-*.js",
+      "!generate-license.js",
+      "!generate-license-simple.js",
+      "!licenses*.txt",
+      "!purchase-page/**/*",
+      "!node_modules/**/*",
+      "node_modules/electron/**/*"
+    ],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "icon": "build/icon.icns",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64",
+            "ia32"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "FocusGuard"
+    },
+    "dmg": {
+      "contents": [
+        {
+          "x": 130,
+          "y": 220
+        },
+        {
+          "x": 410,
+          "y": 220,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ],
+      "title": "FocusGuard ${version}"
+    }
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "electron": "^30.0.0",
+    "electron-builder": "^24.13.3"
   }
 }
